@@ -6,7 +6,7 @@ def parse_wireguard_log(log_line):
     """Parse a WireGuard log line into structured data."""
     # Try both log formats
     connection_pattern = r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s+(\w+)\s+(connected|disconnected)'
-    traffic_pattern = r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s+(\w+)\s+SESSION_END'
+    traffic_pattern = r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s+(\w+)\s+SESSION_END\s+durée:(\d+)h(\d+)m\s+download:(\d+\.\d+)\s+MB\s+upload:(\d+\.\d+)\s+MB'
     
     conn_match = re.match(connection_pattern, log_line)
     traffic_match = re.match(traffic_pattern, log_line)
@@ -20,23 +20,18 @@ def parse_wireguard_log(log_line):
             'type': 'connection'
         }
     elif traffic_match:
-        timestamp_str, user, _ = traffic_match.groups()
-        # Extract traffic data if present
-        bytes_pattern = r'received (\d+)|sent (\d+)'
-        bytes_matches = re.finditer(bytes_pattern, log_line)
-        bytes_received = bytes_sent = 0
+        timestamp_str, user, hours, minutes, download_mb, upload_mb = traffic_match.groups()
         
-        for match in bytes_matches:
-            if match.group(1):  # received
-                bytes_received = int(match.group(1))
-            elif match.group(2):  # sent
-                bytes_sent = int(match.group(2))
+        # Convert MB to bytes (1 MB = 1048576 bytes)
+        bytes_received = int(float(download_mb) * 1048576)
+        bytes_sent = int(float(upload_mb) * 1048576)
         
         return {
             'timestamp': datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S'),
             'user': user,
             'bytes_received': bytes_received,
             'bytes_sent': bytes_sent,
+            'duration': timedelta(hours=int(hours), minutes=int(minutes)),
             'type': 'traffic'
         }
     return None
