@@ -4,35 +4,55 @@ import re
 from utils import parse_wireguard_log, calculate_bandwidth_usage
 
 class VPNDataProcessor:
+    TRAFFIC_LOG = '/var/log/wireguard_traffic.txt'
+    CONNECTIONS_LOG = '/var/log/wireguard_connections.log'
+
     def __init__(self):
         self.connection_data = pd.DataFrame(columns=['timestamp', 'user', 'event'])
         self.traffic_data = pd.DataFrame(columns=['timestamp', 'user', 'bytes_received', 'bytes_sent'])
         
-    def process_logs(self, log_path):
-        """Process WireGuard log file and update data frames."""
+    def process_logs(self):
+        """Process both WireGuard log files and update data frames."""
+        self._process_connection_logs()
+        self._process_traffic_logs()
+
+    def _process_connection_logs(self):
+        """Process connection log file."""
         raw_logs = []
         try:
-            with open(log_path, 'r') as f:
+            with open(self.CONNECTIONS_LOG, 'r') as f:
                 for line in f:
                     parsed = parse_wireguard_log(line)
-                    if parsed:
+                    if parsed and parsed['type'] == 'connection':
                         raw_logs.append(parsed)
         except FileNotFoundError:
-            print(f"Log file not found: {log_path}")
+            print(f"Connection log file not found: {self.CONNECTIONS_LOG}")
             return
         except Exception as e:
-            print(f"Error reading log file: {e}")
+            print(f"Error reading connection log file: {e}")
             return
-        
+
         if raw_logs:
-            # Split logs by type
-            connection_logs = [log for log in raw_logs if log['type'] == 'connection']
-            traffic_logs = [log for log in raw_logs if log['type'] == 'traffic']
-            
-            if connection_logs:
-                self._process_connection_data(connection_logs)
-            if traffic_logs:
-                self._process_traffic_data(traffic_logs)
+            self._process_connection_data(raw_logs)
+
+    def _process_traffic_logs(self):
+        """Process traffic log file."""
+        raw_logs = []
+        try:
+            with open(self.TRAFFIC_LOG, 'r') as f:
+                for line in f:
+                    parsed = parse_wireguard_log(line)
+                    if parsed and parsed['type'] == 'traffic':
+                        raw_logs.append(parsed)
+        except FileNotFoundError:
+            print(f"Traffic log file not found: {self.TRAFFIC_LOG}")
+            return
+        except Exception as e:
+            print(f"Error reading traffic log file: {e}")
+            return
+
+        if raw_logs:
+            self._process_traffic_data(raw_logs)
     
     def _process_connection_data(self, logs):
         """Extract connection events from log data."""

@@ -62,7 +62,7 @@ def get_usage_history():
 def update_metrics():
     """Send updated metrics via WebSocket"""
     while True:
-        vpn_processor.process_logs('/var/log/wireguard/wg0.log')
+        vpn_processor.process_logs()  # No need to pass log path as it's defined in the class
         metrics = vpn_processor.get_usage_metrics()
         socketio.emit('metrics_update', metrics)
         socketio.sleep(10)
