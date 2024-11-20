@@ -5,6 +5,10 @@ from models import db, Connection
 from utils import parse_wireguard_log, calculate_bandwidth_usage, generate_mock_data
 
 class VPNDataProcessor:
+    # Add log file paths as class variables
+    TRAFFIC_LOG = '/var/log/wireguard_traffic.txt'
+    CONNECTIONS_LOG = '/var/log/wireguard_connections.log'
+    
     def __init__(self):
         self.connection_data = pd.DataFrame(columns=['timestamp', 'user', 'event'])
         self.traffic_data = pd.DataFrame(columns=['timestamp', 'user', 'bytes_received', 'bytes_sent'])
