@@ -1,0 +1,25 @@
+.metric-card {
+    background: linear-gradient(145deg, #1B1F27, #262B36);
+    border-radius: 10px;
+    padding: 1rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.stPlotlyChart {
+    background: #1B1F27;
+    border-radius: 10px;
+    padding: 1rem;
+}
+
+.table-container {
+    background: #1B1F27;
+    border-radius: 10px;
+    padding: 1rem;
+    margin: 1rem 0;
+}
+
+div[data-testid="stMetricValue"] {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #FF4B4B;
+}
