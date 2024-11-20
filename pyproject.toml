@@ -10,4 +10,7 @@ dependencies = [
     "plotly>=5.24.1",
     "streamlit>=1.40.1",
     "pandas",
+    "python-socketio",
+    "eventlet",
+    "simple-websocket",
 ]

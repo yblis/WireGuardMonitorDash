@@ -1,6 +1,7 @@
 import re
 from datetime import datetime, timedelta
 import pandas as pd
+import random
 
 def parse_wireguard_log(log_line):
     """Parse a WireGuard log line into structured data."""
@@ -61,3 +62,42 @@ def get_active_users(data, timeout_minutes=5):
     timeout = current_time - timedelta(minutes=timeout_minutes)
     active_data = data[data['timestamp'] >= timeout]
     return len(active_data['user'].unique()) if not active_data.empty else 0
+
+def generate_mock_data():
+    """Generate mock WireGuard connection and traffic data for development."""
+    current_time = datetime.now()
+    users = ['user1', 'user2', 'user3', 'user4', 'user5']
+    mock_data = []
+    
+    # Generate some historical data
+    for _ in range(20):
+        user = random.choice(users)
+        timestamp = current_time - timedelta(
+            days=random.randint(0, 7),
+            hours=random.randint(0, 23),
+            minutes=random.randint(0, 59)
+        )
+        
+        # Generate both connection and traffic data
+        bytes_received = random.randint(1048576, 104857600)  # 1MB to 100MB
+        bytes_sent = random.randint(1048576, 104857600)  # 1MB to 100MB
+        
+        mock_data.append({
+            'timestamp': timestamp,
+            'user': user,
+            'event_type': 'SESSION_END',
+            'bytes_received': bytes_received,
+            'bytes_sent': bytes_sent
+        })
+        
+        # Add some active connections
+        if random.random() < 0.3:  # 30% chance for active connection
+            mock_data.append({
+                'timestamp': current_time - timedelta(minutes=random.randint(1, 4)),
+                'user': user,
+                'event_type': 'connected',
+                'bytes_received': random.randint(0, 1048576),  # 0 to 1MB
+                'bytes_sent': random.randint(0, 1048576)  # 0 to 1MB
+            })
+    
+    return mock_data

@@ -1,8 +1,8 @@
 from flask import Flask, render_template, jsonify
 from flask_socketio import SocketIO
-from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
 import json
+from models import db, Connection
 from data_processor import VPNDataProcessor
 
 app = Flask(__name__)
@@ -10,21 +10,12 @@ app.config['SECRET_KEY'] = 'your-secret-key'  # For development only
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///vpn_monitor.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db = SQLAlchemy(app)
+db.init_app(app)
 socketio = SocketIO(app)
-vpn_processor = VPNDataProcessor()
-
-# Database Models
-class Connection(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    user = db.Column(db.String(100), nullable=False)
-    event_type = db.Column(db.String(20), nullable=False)  # connected/disconnected
-    bytes_received = db.Column(db.BigInteger, default=0)
-    bytes_sent = db.Column(db.BigInteger, default=0)
 
 with app.app_context():
     db.create_all()
+    vpn_processor = VPNDataProcessor()
 
 @app.route('/')
 def index():
@@ -61,11 +52,16 @@ def get_usage_history():
 
 def update_metrics():
     """Send updated metrics via WebSocket"""
-    while True:
-        vpn_processor.process_logs()  # No need to pass log path as it's defined in the class
-        metrics = vpn_processor.get_usage_metrics()
-        socketio.emit('metrics_update', metrics)
-        socketio.sleep(10)
+    with app.app_context():  # Add application context here
+        while True:
+            try:
+                vpn_processor.process_logs()
+                metrics = vpn_processor.get_usage_metrics()
+                socketio.emit('metrics_update', metrics)
+                socketio.sleep(10)
+            except Exception as e:
+                print(f"Error in update_metrics: {e}")
+                socketio.sleep(10)  # Wait before retrying
 
 @socketio.on('connect')
 def handle_connect():
