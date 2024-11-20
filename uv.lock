@@ -691,6 +691,7 @@ dependencies = [
     { name = "flask" },
     { name = "flask-socketio" },
     { name = "flask-sqlalchemy" },
+    { name = "pandas" },
     { name = "plotly" },
     { name = "streamlit" },
 ]
@@ -700,6 +701,7 @@ requires-dist = [
     { name = "flask", specifier = ">=3.1.0" },
     { name = "flask-socketio", specifier = ">=5.4.1" },
     { name = "flask-sqlalchemy", specifier = ">=3.1.1" },
+    { name = "pandas" },
     { name = "plotly", specifier = ">=5.24.1" },
     { name = "streamlit", specifier = ">=1.40.1" },
 ]

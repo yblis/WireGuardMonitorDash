@@ -4,19 +4,47 @@ import pandas as pd
 
 def parse_wireguard_log(log_line):
     """Parse a WireGuard log line into structured data."""
-    pattern = r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s+\[([^\]]+)\]\s+(.+)'
-    match = re.match(pattern, log_line)
-    if match:
-        timestamp, level, message = match.groups()
+    # Try both log formats
+    connection_pattern = r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s+(\w+)\s+(connected|disconnected)'
+    traffic_pattern = r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s+(\w+)\s+SESSION_END'
+    
+    conn_match = re.match(connection_pattern, log_line)
+    traffic_match = re.match(traffic_pattern, log_line)
+    
+    if conn_match:
+        timestamp_str, user, event = conn_match.groups()
         return {
-            'timestamp': datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S'),
-            'level': level,
-            'message': message
+            'timestamp': datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S'),
+            'user': user,
+            'event': event,
+            'type': 'connection'
+        }
+    elif traffic_match:
+        timestamp_str, user, _ = traffic_match.groups()
+        # Extract traffic data if present
+        bytes_pattern = r'received (\d+)|sent (\d+)'
+        bytes_matches = re.finditer(bytes_pattern, log_line)
+        bytes_received = bytes_sent = 0
+        
+        for match in bytes_matches:
+            if match.group(1):  # received
+                bytes_received = int(match.group(1))
+            elif match.group(2):  # sent
+                bytes_sent = int(match.group(2))
+        
+        return {
+            'timestamp': datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S'),
+            'user': user,
+            'bytes_received': bytes_received,
+            'bytes_sent': bytes_sent,
+            'type': 'traffic'
         }
     return None
 
 def calculate_bandwidth_usage(data):
     """Calculate total bandwidth usage from traffic data."""
+    if data.empty:
+        return {'download': 0, 'upload': 0}
     return {
         'download': data['bytes_received'].sum(),
         'upload': data['bytes_sent'].sum()
@@ -32,6 +60,9 @@ def format_bytes(bytes_value):
 
 def get_active_users(data, timeout_minutes=5):
     """Get count of active users based on recent activity."""
+    if data.empty or 'timestamp' not in data.columns:
+        return 0
     current_time = datetime.now()
     timeout = current_time - timedelta(minutes=timeout_minutes)
-    return len(data[data['last_seen'] >= timeout]['user'].unique())
+    active_data = data[data['timestamp'] >= timeout]
+    return len(active_data['user'].unique()) if not active_data.empty else 0
